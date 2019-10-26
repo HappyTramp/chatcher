@@ -8,6 +8,7 @@ class Client:
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.recv_buf_size = 1024
+        self.running = False
 
     def run(self):
         self.sock.connect((self.host, self.port))

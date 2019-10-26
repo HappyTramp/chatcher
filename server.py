@@ -24,6 +24,7 @@ class ClientThread(threading.Thread):
                 break
             self.log(f'received: {msg}')
             self.panding.append(msg)
+        self.running = False
 
     def tear(self):
         self.conn.close()
@@ -40,12 +41,12 @@ class Server:
         self.listen_max = 5
         self.threads = []
         self.refresh_rate = 0.2
+        self.broadcast_panding_thread = threading.Thread(target=self.broadcast_panding)
 
     def run(self):
         self.sock.bind((self.host, self.port))
         self.sock.listen(self.listen_max)
         self.running = True
-        self.broadcast_panding_thread = threading.Thread(target=self.broadcast_panding)
         self.broadcast_panding_thread.start()
         while self.running:
             conn, info = self.sock.accept()
@@ -55,21 +56,31 @@ class Server:
         self.quit()
 
     def quit(self):
-        self.broadcast_panding_thread.join()
+        self.running = False
+        if self.broadcast_panding_thread.isAlive():
+            self.broadcast_panding_thread.join()
         for t in self.threads:
             t.join()
         self.sock.close()
 
     def broadcast_panding(self):
         while self.running:
-            self.threads = [t for t in self.threads if t.isAlive]
+            self.clean_threads()
             for t in self.threads:
                 for msg in t.panding:
                     for c in self.threads:
                         if c == t:
                             continue
-                        c.conn.send(msg.encode())
+                        c.conn.send(f'MSG {msg}'.encode())
+                t.panding = []
             sleep(self.refresh_rate)
+
+    def clean_threads(self):
+        for t in self.threads:
+            if not t.running:
+                t.join()
+        self.threads = [t for t in self.threads if t.isAlive()]
+
 
 
 
