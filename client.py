@@ -41,8 +41,9 @@ class Client:
             if msg == 'q':
                 self.sock.send(b'QUIT')
                 self.running = False
-            else:
-                self.sock.send(msg.encode())
+            if msg[:5] == 'name ':
+                self.sock.send(('NAME ' + msg[5:]).encode())
+            self.sock.send(msg.encode())
 
 
 if __name__ == '__main__':

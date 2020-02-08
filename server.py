@@ -10,6 +10,7 @@ class ClientThread(threading.Thread):
         self.info = info
         self.recv_buf_size = 1024
         self.panding = []
+        self.name = ""
 
     def run(self):
         self.running = True
@@ -22,6 +23,8 @@ class ClientThread(threading.Thread):
                 self.conn.send(b'QUITTED')
                 self.log('quit')
                 break
+            if msg[:4] == 'NAME':
+                self.name = msg[4:]
             self.log(f'received: {msg}')
             self.panding.append(msg)
         self.running = False
@@ -30,7 +33,7 @@ class ClientThread(threading.Thread):
         self.conn.close()
 
     def log(self, msg):
-        print(f'{self.info}: {msg}')
+        print(f'{self.info if self.name == "" else self.name}: {msg}')
 
 
 class Server:
@@ -42,6 +45,7 @@ class Server:
         self.threads = []
         self.refresh_rate = 0.2
         self.broadcast_panding_thread = threading.Thread(target=self.broadcast_panding)
+        self.running = False
 
     def run(self):
         self.sock.bind((self.host, self.port))
@@ -82,10 +86,6 @@ class Server:
         self.threads = [t for t in self.threads if t.isAlive()]
 
 
-
-
-
-
 if __name__ == '__main__':
     s = Server('localhost', 8080)
     try:
@@ -95,4 +95,5 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
     finally:
-        s.quit()
+        if s.running:
+            s.quit()
